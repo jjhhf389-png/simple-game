@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>내 피부의 위험신호를 찾아라!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Gmarket+Sans:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            font-family: 'Gmarket Sans', 'Malgun Gothic', sans-serif;
+            background-color: #f0f8ff;
+            text-align: center;
+            width: 100vw;
+            min-height: 100vh;
+            overflow-y: auto !important; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center;
+            padding: 20px 30px; /* 12.7인치 화면 비율 최적화 여백 */
+        }
+        
+        /* ---------------- [대기 화면] ---------------- */
+        .intro-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-width: 900px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        .intro-title {
+            color: #0056b3;
+            font-size: 3.2rem; 
+            font-weight: 700;
+            margin-bottom: 20px;
+            white-space: nowrap;
+        }
+        .intro-subtitle {
+            font-size: 2.2rem; 
+            font-weight: 500;
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            word-break: keep-all;
+        }
+        .start-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 20px 55px;
+            font-size: 2.2rem;
+            font-weight: 700;
+            border-radius: 60px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 123, 255, 0.4);
+            transition: transform 0.2s, background-color 0.2s;
+            animation: pulse 1.5s infinite alternate; 
+        }
+        .start-btn:active {
+            transform: scale(0.95);
+            background-color: #0056b3;
+        }
+
+        /* ---------------- [게임 진행 화면] ---------------- */
+        .game-area {
+            display: none; 
+            width: 100%;
+            max-width: 1400px;
+            flex-direction: column;
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        /* 💡 점수판 여백 축소로 사진 카드 영역 확보 */
+        .header-area {
+            flex-shrink: 0;
+            margin-bottom: 12px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 💡 점수판 박스 및 폰트 크기 슬림화 */
+        .score-board {
+            font-size: 1.6rem; 
+            font-weight: 700;
+            color: #d9534f;
+            background: #fff;
+            display: inline-block;
+            padding: 8px 30px;
+            border-radius: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 3px solid #d9534f;
+        }
+        
+        /* 💡 격자판 간격 및 아래쪽 잘림 방지 여백 조절 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 15px;
+            width: 100%;
+            margin: 0 auto;
+            padding-bottom: 20px; 
+        }
+
+        /* 💡 카드의 세로 길이를 300px로 줄여 태블릿 소프트키에 가려지지 않게 최적화 */
+        .card-container {
+            perspective: 1500px;
+            width: 100%;
+            height: 300px; 
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+        }
+
+        /* 앞면: 테두리 없는 깔끔한 이미지 위주 디자인 */
+        .card-front {
+            z-index: 2;
+            transform: rotateY(0deg);
+            background: none;
+            border: none;
+        }
+
+        .image-container {
+            width: 100%;
+            height: 100%; 
+            position: relative;
+            background-color: #eaeaea;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        /* 💡 알약 모양 이름표 스타일 유지 */
+        .card-title {
+            position: absolute;
+            bottom: 10px; 
+            left: 50%;
+            transform: translateX(-50%); 
+            background: rgba(255, 255, 255, 0.9); 
+            padding: 3px 19px; 
+            font-weight: 700;
+            font-size: 1.9rem; 
+            color: #111;
+            text-align: center;
+            z-index: 3;
+            border-radius: 30px; 
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); 
+            white-space: nowrap; 
+        }
+
+        /* 뒷면: 설명 영역 */
+        .card-back {
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .back-result {
+            font-size: 1.9rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .back-desc {
+            font-size: 1.6rem;
+            line-height: 1.6;
+            color: #111;
+            font-weight: 700;
+            word-break: keep-all;
+        }
+
+        /* 정답/오답 테두리 강조색 */
+        .card-back.correct {
+            background-color: #f8d7da;
+            border: 5px solid #dc3545;
+        }
+        .card-back.correct .back-result {
+            color: #dc3545;
+        }
+
+        .card-back.wrong {
+            background-color: #d4edda;
+            border: 5px solid #28a745;
+        }
+        .card-back.wrong .back-result {
+            color: #28a745;
+        }
+
+        /* 초거대 귀여운 축하 팝업창 */
+        .success-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(4px); 
+            z-index: 999;
+        }
+
+        .success-popup {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.7); 
+            background-color: white;
+            border-radius: 32px;
+            border: 6px solid #ffcc00; 
+            padding: 45px 35px;
+            width: 80%;
+            max-width: 650px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.35);
+            z-index: 1000;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+
+        .success-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .success-icon {
+            font-size: 6.5rem;
+            margin-bottom: 15px;
+            animation: bounce 1s infinite alternate; 
+        }
+
+        .success-title {
+            color: #ff9900;
+            font-size: 2.6rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .success-text {
+            font-size: 1.75rem;
+            line-height: 1.6;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 40px;
+            word-break: keep-all;
+        }
+
+        .success-btn {
+            background-color: #ff9900;
+            color: white;
+            border: none;
+            padding: 16px 45px;
+            font-size: 1.75rem;
+            font-weight: 700;
+            border-radius: 60px; 
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 153, 0, 0.4);
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .success-btn:active {
+            transform: scale(0.95);
+            background-color: #e68a00;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-15px); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 14px;
+            height: 14px;
+            z-index: 1001;
+            border-radius: 50%;
+            pointer-events: none; 
+            animation: fall linear forwards;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(105vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- [대기 화면] -->
+    <div class="intro-container" id="intro-screen">
+        <h1 class="intro-title">🚨 내 피부의 감염 위험신호를 찾아라! 🚨</h1>
+        <p class="intro-subtitle">의사 선생님을 만나 치료해야 하는 <br>위험한 피부 사진들을 눈을 크게 뜨고 터치해 보세요!</p>
+        <button class="start-btn" onclick="startGame()">게임 시작하기 ▶</button>
+    </div>
+
+    <!-- [게임 영역] -->
+    <div class="game-area" id="game-screen">
+        <div class="header-area">
+            <div class="score-board">
+                찾은 위험 신호: <span id="score">0</span> / <span id="total-count">0</span> 개
+            </div>
+        </div>
+
+        <div class="grid-container" id="grid"></div>
+    </div>
+
+    <!-- 성공 축하 팝업 및 색종이 효과 -->
+    <div class="success-overlay" id="success-overlay"></div>
+    <div class="success-popup" id="success-popup">
+        <div class="success-icon">🎊</div>
+        <h2 class="success-title">우와! 대단해요!</h2>
+        <p class="success-text">
+            숨어있던 모든 피부 감염 위험 신호를 발견해 내셨습니다! <br>
+            <strong>기념품을 받아 가세요! 🎁</strong>
+        </p>
+        <button class="success-btn" onclick="closeSuccessPopup()">선물 받기 완료!</button>
+    </div>
+
+    <script>
+        const skinData = [
+            { id: 1, name: "동정맥루 발적", isDanger: true, image: "https://mblogthumb-phinf.pstatic.net/MjAyMTExMjVfMTY0/MDAxNjM3NzkzOTU4NTUx.05Uw3DpO1Tr2-TpnkAs3hTNKMTfm_l0m4C8X2NkTQaQg.K2d_pPZqzL6pajs6kUu7J8YmWdzGC8PpQ6euh1Xtryog.PNG.alwayspureclinic/%EA%B0%90%EC%97%BC%ED%98%88%EA%B4%80_02.png?type=w800", desc: "투석 부위 주변이 빨갛게 부어오르거나, 진물이 나거나, 만졌을 때 뜨끈뜨끈하다면 이는 혈관이 세균에 감염되었다는 위험 신호입니다." },
+            { id: 2, name: "무좀", isDanger: true, image: "https://search.pstatic.net/common/?src=http%3A%2F%2Fblogfiles.naver.net%2FMjAyNTEwMjFfMjQw%2FMDAxNzYxMDI4ODA2MjIx.8WoR1f5XVXkIh09fq1r1sVJH_m_wwyzPOE_CbvMPnL0g.W9-cNWjyA1CRtoCmElaNsE1CpoX7ttRKzrlAbgxL3qYg.PNG%2FChatGPT_Image_2025%25B3%25E2_10%25BF%25F9_21%25C0%25CF_%25BF%25C0%25C8%25C4_03_39_51.png&type=sc960_832", desc: "단순히 가려운 피부병이 아닙니다! 갈라진 틈으로 세균이 들어가 더 큰 병을 키울 수 있으니 치료가 필요합니다." },
+            { id: 3, name: "옴 진드기", isDanger: true, image: "https://newsimg.hankookilbo.com/cms/articlerelease/2023/06/08/37fae3ab-a029-4377-8224-93c3847aa501.jpg", desc: "가려움증을 유발하는 전염성이 매우 강한 기생충 질환입니다. 발견 즉시 가족과 함께 치료를 시작해야 합니다." },
+            { id: 4, name: "모기", isDanger: false, image: "https://t1.daumcdn.net/news/202105/25/thequizlive/20210525073557777ekgt.jpg", desc: "단순 가려움일 수 있으나 긁어서 상처를 내면 안 됩니다. 시원하게 해주고 가려움증을 가라앉혀주세요." }
+        ];
+
+        let score = 0;
+        const totalDanger = skinData.filter(item => item.isDanger).length;
+        const grid = document.getElementById('grid');
+        const scoreSpan = document.getElementById('score');
+        
+        document.getElementById('total-count').textContent = totalDanger;
+
+        skinData.forEach(item => {
+            const container = document.createElement('div');
+            container.className = 'card-container';
+
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const frontFace = `
+                <div class="card-face card-front">
+                    <div class="image-container">
+                        <img src="${item.image}" alt="${item.name}">
+                    </div>
+                    <div class="card-title">${item.name}</div>
+                </div>
+            `;
+
+            const backFaceColorClass = item.isDanger ? 'correct' : 'wrong';
+            const backResultText = item.isDanger ? '🚨 위험 신호 발견!' : '✅ 안전해요!';
+
+            const backFace = `
+                <div class="card-face card-back ${backFaceColorClass}">
+                    <div class="back-result">${backResultText}</div>
+                    <div class="back-desc">${item.desc}</div>
+                </div>
+            `;
+
+            card.innerHTML = frontFace + backFace;
+            
+            card.addEventListener('click', () => {
+                if (card.classList.contains('flipped')) return;
+
+                card.classList.add('flipped');
+
+                if (item.isDanger) {
+                    score++;
+                    scoreSpan.textContent = score;
+                }
+
+                if (score === totalDanger) {
+                    setTimeout(() => {
+                        showSuccessPopup();
+                    }, 800);
+                }
+            });
+
+            container.appendChild(card);
+            grid.appendChild(container);
+        });
+
+        function startGame() {
+            document.getElementById('intro-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showSuccessPopup() {
+            const overlay = document.getElementById('success-overlay');
+            const popup = document.getElementById('success-popup');
+            
+            overlay.style.display = 'block';
+            popup.style.display = 'block';
+            
+            setTimeout(() => {
+                popup.classList.add('show');
+            }, 50);
+
+            for (let i = 0; i < 120; i++) {
+                createConfetti();
+            }
+        }
+
+        function closeSuccessPopup() {
+            const popup = document.getElementById('success-popup');
+            popup.classList.remove('show');
+            
+            setTimeout(() => {
+                location.reload(); 
+            }, 300);
+        }
+
+        function createConfetti() {
+            const colors = ['#FFC0CB', '#FFD700', '#ADFF2F', '#00FFFF', '#FF69B4', '#FFA500', '#9370DB'];
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + 'vw';
+            confetti.style.top = -Math.random() * 20 - 10 + 'px';
+            
+            const size = Math.random() * 10 + 8 + 'px';
+            confetti.style.width = size;
+            confetti.style.height = size;
+            
+            const duration = Math.random() * 2 + 2 + 's'; 
+            confetti.style.animationDuration = duration;
+            
+            document.body.appendChild(confetti);
+
+            setTimeout(() => {
+                confetti.remove();
+            }, parseFloat(duration) * 1000);
+        }
+    </script>
+</body>
+</html>
